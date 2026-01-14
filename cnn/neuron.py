@@ -3,20 +3,29 @@ import numpy as np
 class neuron ():
     def __init__(self,weights:np.array=None,act_function=lambda: None,bias=0):
         self.weights=weights
-        self.bias=0
+        self.bias=bias
         self.act=act_function
     
     def output(self,inputs:np.array):
+        #inputs not necessarily always an array. base implementation almost always overriden
         return self.act_function(np.sum(self.weights*inputs)+self.bias)
     
-    
+#one neuron per layer
 class convNeuron(neuron):
-    weights=None #shared weights within a convolutional layer
 
-    def __init__(self, weights):
-        super.__init__()
-        convNeuron.weights=weights
+    def __init__(self,weights:np.array=None,act_function=lambda: None,bias=0,
+                    kernelSize=5):
+        super().__init__(weights,act_function,bias)
+        self.kernelSize=kernelSize #default 5x5 kernel matrices
+        #-> inputs should be 5x5 matrices
 
-    
+    def output(self,inputMatrix=None):
+        #take a 2d array and run convolution
         
-    
+        try:
+            np.testing.assert_array_equal(inputMatrix.shape, self.weights.shape)
+        except AssertionError as e:
+            print(f"weights and input are different sizes: {e}")
+        
+        return np.sum(inputMatrix*self.weights)
+
