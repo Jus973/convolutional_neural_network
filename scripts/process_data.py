@@ -12,7 +12,7 @@ if __name__ == "__main__":
     dataset = load_dataset("jacktol/ATC-ASR-Dataset")
     train_df = dataset["train"].to_pandas()
 
-
+    result_list={}
     x_list=[]
     y_list=[]
 
@@ -42,6 +42,11 @@ if __name__ == "__main__":
         x_list.append(x)
         label = int(infer_intent(row["text"]))
         y_list.append(label)
+
+        if label in result_list:
+            result_list[label]+=1
+        else:
+            result_list[label]=1
         
         #visualization only
         # S_pixels = (S_fixed * 255).clip(0, 255).astype(np.uint8)
@@ -56,3 +61,5 @@ if __name__ == "__main__":
         X=X,
         y=y,
     )
+
+    print(result_list)
