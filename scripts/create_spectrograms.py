@@ -7,8 +7,8 @@ import soundfile as sf
 from PIL import Image
 
 
-if __name__ == "__main__":
-    dataset = load_dataset("jacktol/atc-dataset")
+if __name__ == "__main__":  
+    dataset = load_dataset("jacktol/ATC-ASR-Dataset")
     train_df = dataset["train"].to_pandas()
 
     # for every sample in train_df (includes audio and text), save a plot in /data for
@@ -18,15 +18,16 @@ if __name__ == "__main__":
         audio_bytes_io = io.BytesIO(row["audio"]["bytes"])
         y, sr = sf.read(audio_bytes_io, dtype='float32')
 
-        S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=28,   
+        S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=64,   
                                             n_fft=1024,
-                                            hop_length=len(y) // 28)
-
+                                            hop_length=160,
+                                            power=2.0)
+        
         S_dB = librosa.power_to_db(S, ref=np.max)
-
+        
         S_norm = (S_dB - S_dB.min()) / (S_dB.max() - S_dB.min())
         S_pixels = (S_norm * 255).astype(np.uint8)
-
+        
         img = Image.fromarray(S_pixels)
         img.save(f"data/spectrograms/{row['text']}.png")
         
