@@ -1,11 +1,9 @@
 from cnn.neuron import convNeuron
+from cnn.neuron import neuron
 import numpy as np
 
 class layer ():
-    def __init__(self, numNeurons, neuron):
-        self.neuronRow=[]
-        for _ in range(numNeurons):
-            self.neuronRow.append(neuron())
+    pass
 
 #implement the convolutional layer with just 1 neuron
 #convolution is actually just cross correlation. true convolution has kernel flipped
@@ -41,15 +39,15 @@ class convolutional_layer(layer):
         return outputMatrix
     # All neurons in the same convolutional layer share the same weights
 
-class reLU (layer):
-    def __init__(self):
-        pass
-    
-    def run(self, inputMatrix=np.zeros((28,28))):
-        rectifiedUnit=lambda x:max(0,x)
-        vectorizedUnit=np.vectorize(rectifiedUnit)
-        return vectorizedUnit(inputMatrix)
+def reLU (inputMatrix=np.zeros((28,28))):
+    rectifiedUnit=lambda x:max(0,x)
+    vectorizedUnit=np.vectorize(rectifiedUnit)
+    return vectorizedUnit(inputMatrix)
 
+def softmax (inputMatrix=[]):
+    summation=sum(np.exp(inputMatrix))
+    outputMatrix=[np.exp(x)/summation for x in inputMatrix]
+    return outputMatrix
 
 class max_pooling_layer(layer):
     def __init__(self, kernelSize=2, stride=2):
@@ -74,10 +72,24 @@ class max_pooling_layer(layer):
         
         return outputMatrix
 
+class fully_connected_layer(layer):
+
+    def __init__(self, numNeurons, neuronType, act_function):
+        self.neuronRow=[]
+        for _ in range(numNeurons):
+            self.neuronRow.append(neuronType(act_function=act_function)) #TODO implement weights
+
+    def run(self, inputMatrix): #input matrix is flattened vector
+        outputMatrix=[]
+        for i in range(len(self.neuronRow)):
+            #represent vector horizontally
+            outputMatrix.append(self.neuronRow[i].output(inputMatrix))
+        
+        return outputMatrix
 
 class convolutional_block ():
     def __init__(self, conv=convolutional_layer(3,1,1), 
-                    activationFunction=reLU(), 
+                    activationFunction=reLU, 
                     pool=max_pooling_layer(2, 2)):
         self.conv=conv
         self.activationFunction=activationFunction
@@ -90,7 +102,19 @@ class convolutional_block ():
         
         return p3
 
-
+class classifier ():
+    def __init__(self, full1=fully_connected_layer(6,neuron,reLU),
+                        full2=fully_connected_layer(3,neuron,reLU)):
+        self.full1=full1
+        self.full2=full2
+    
+    def run (self, inputMatrix):
+        flattened=np.ndarray.flatten(inputMatrix)
+        p1=self.full1.run(flattened)
+        p2=self.full2.run(p1)
+        outputMatrix=softmax(p2)
+        return outputMatrix
+    
 
 class cnn ():
     def __init__ (self):

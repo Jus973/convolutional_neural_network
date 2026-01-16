@@ -4,7 +4,7 @@ class neuron ():
     def __init__(self,weights:np.array=None,act_function=lambda: None,bias=0):
         self.weights=weights
         self.bias=bias
-        self.act=act_function
+        self.act_function=act_function
     
     def output(self,inputs:np.array):
         #inputs not necessarily always an array. base implementation almost always overriden
