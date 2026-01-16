@@ -3,7 +3,7 @@ import numpy as np
 
 if __name__ == "__main__":
     
-    testLayer=convolutional_layer(kernelSize=3)
+    testLayer=convolutional_layer(kernelSize=3,padding=1)
     inputMatrix=np.array([[20, 24, 11, 12, 16, 19], 
                           [19, 17, 20, 23, 15, 9],
                           [21, 40, 25, 13, 14, 8],
