@@ -3,7 +3,17 @@ from cnn.neuron import neuron
 import numpy as np
 
 class layer ():
-    pass
+
+    def __init__(self):
+        self.inputMatrix=None
+        self.outputMatrix=None
+    
+    def getInput(self):
+        return self.inputMatrix
+
+    def getOutput(self):
+        return self.outputMatrix
+
 
 #implement the convolutional layer with just 1 neuron
 #convolution is actually just cross correlation. true convolution has kernel flipped
@@ -36,18 +46,32 @@ class convolutional_layer(layer):
                 outputMatrix[x][y] = self.cn.output(paddedMatrix[iX:iX+self.kernelSize,
                                                                 iY:iY+self.kernelSize])    
         
+        self.inputMatrix=inputMatrix
+        self.outputMatrix=outputMatrix
         return outputMatrix
     # All neurons in the same convolutional layer share the same weights
 
-def reLU (inputMatrix=np.zeros((28,28))):
-    rectifiedUnit=lambda x:max(0,x)
-    vectorizedUnit=np.vectorize(rectifiedUnit)
-    return vectorizedUnit(inputMatrix)
 
-def softmax (inputMatrix=[]):
-    summation=sum(np.exp(inputMatrix))
-    outputMatrix=[np.exp(x)/summation for x in inputMatrix]
-    return outputMatrix
+class reLU (layer):
+
+    def run (self, inputMatrix=np.zeros((28,28))):
+        rectifiedUnit=lambda x:max(0,x)
+        vectorizedUnit=np.vectorize(rectifiedUnit)
+
+        self.inputMatrix=inputMatrix
+        self.outputMatrix=vectorizedUnit(inputMatrix)
+        return self.outputMatrix
+
+class softmax (layer):
+
+    def run (self, inputMatrix=[]):
+        summation=sum(np.exp(inputMatrix))
+        outputMatrix=[np.exp(x)/summation for x in inputMatrix]
+
+        self.inputMatrix=inputMatrix
+        self.outputMatrix=outputMatrix
+
+        return outputMatrix
 
 class max_pooling_layer(layer):
     def __init__(self, kernelSize=2, stride=2):
@@ -70,6 +94,9 @@ class max_pooling_layer(layer):
                 outputMatrix[x][y] += np.max(inputMatrix[iX:iX+self.kernelSize,
                                                     iY:iY+self.kernelSize])    
         
+        self.inputMatrix=inputMatrix
+        self.outputMatrix=outputMatrix
+
         return outputMatrix
 
 class fully_connected_layer(layer):
@@ -85,7 +112,10 @@ class fully_connected_layer(layer):
             #represent vector horizontally
             outputMatrix.append(self.neuronRow[i].output(inputMatrix))
         
+        self.inputMatrix=inputMatrix
+        self.outputMatrix=outputMatrix
         return outputMatrix
+
 
 class convolutional_block ():
     def __init__(self, conv=convolutional_layer(3,1,1), 
