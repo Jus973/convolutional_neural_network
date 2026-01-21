@@ -13,6 +13,12 @@ class layer ():
 
     def getOutput(self):
         return self.outputMatrix
+    
+    def forward(self):
+        pass
+
+    def backward(self):
+        pass
 
 
 #implement the convolutional layer with just 1 neuron
@@ -20,13 +26,14 @@ class layer ():
 class convolutional_layer(layer):
     
     def __init__(self, kernelSize=3, stride=1,padding=0):
+        super().__init__()
         self.kernelSize=kernelSize
         self.stride=stride
         self.cn=convNeuron(kernelSize)
         self.padding=padding
     
     #implementation of convolution formula assuming it's a square
-    def run(self, inputMatrix=np.zeros((28,28))):
+    def forward(self, inputMatrix=np.zeros((28,28))):
         
         paddedMatrix = np.pad(
             inputMatrix,
@@ -54,7 +61,7 @@ class convolutional_layer(layer):
 
 class reLU (layer):
 
-    def run (self, inputMatrix=np.zeros((28,28))):
+    def forward (self, inputMatrix=np.zeros((28,28))):
         rectifiedUnit=lambda x:max(0,x)
         vectorizedUnit=np.vectorize(rectifiedUnit)
 
@@ -64,7 +71,7 @@ class reLU (layer):
 
 class softmax (layer):
 
-    def run (self, inputMatrix=[]):
+    def forward (self, inputMatrix=[]):
         summation=sum(np.exp(inputMatrix))
         outputMatrix=[np.exp(x)/summation for x in inputMatrix]
 
@@ -75,10 +82,11 @@ class softmax (layer):
 
 class max_pooling_layer(layer):
     def __init__(self, kernelSize=2, stride=2):
+        super().__init__()
         self.kernelSize=kernelSize
         self.stride=stride
     
-    def run(self, inputMatrix=np.zeros((28,28))):
+    def forward(self, inputMatrix=np.zeros((28,28))):
         if len(inputMatrix) % 2 != 0:
             raise ValueError("2x2 maxpool requires %2==0")
     
@@ -102,11 +110,12 @@ class max_pooling_layer(layer):
 class fully_connected_layer(layer):
 
     def __init__(self, numNeurons, neuronType, act_function):
+        super().__init__()
         self.neuronRow=[]
         for _ in range(numNeurons):
             self.neuronRow.append(neuronType(act_function=act_function)) #TODO implement weights
 
-    def run(self, inputMatrix): #input matrix is flattened vector
+    def forward(self, inputMatrix): #input matrix is flattened vector
         outputMatrix=[]
         for i in range(len(self.neuronRow)):
             #represent vector horizontally
@@ -117,7 +126,17 @@ class fully_connected_layer(layer):
         return outputMatrix
 
 
-class convolutional_block ():
+#clean way of combining layers to be blocks while still storing outputs
+class block ():
+    def __init__(self):
+        self.layerOutputs=[]
+        self.currentOutput=None
+
+    def performLayer(self, forwardFunction):
+        self.layerOutputs.append(forwardFunction(self.currentOutput))
+
+
+class convolutional_block (block):
     def __init__(self, conv=convolutional_layer(3,1,1), 
                     activationFunction=reLU, 
                     pool=max_pooling_layer(2, 2)):
@@ -125,37 +144,66 @@ class convolutional_block ():
         self.activationFunction=activationFunction
         self.pool=pool
 
-    def run (self, inputMatrix):
-        p1=self.conv.run(inputMatrix)
-        p2=self.activationFunction.run(p1)
-        p3=self.pool.run(p2)
-        
-        return p3
+    #convolutional_layer.convNeuron.weights are my weights
 
-class classifier ():
+    def forward (self, inputMatrix):
+        self.currentOutput=inputMatrix
+
+        self.performLayer(self.conv.forward)
+        self.performLayer(self.activationFunction.forward)
+        self.performLayer(self.pool.forward)
+
+        return self.currentOutput
+
+class classifier (block):
     def __init__(self, full1=fully_connected_layer(6,neuron,reLU),
                         full2=fully_connected_layer(3,neuron,reLU)):
         self.full1=full1
         self.full2=full2
+
+        #fully_connected_layer.neuronRow[x] are my weights for x neurons
     
-    def run (self, inputMatrix):
-        flattened=np.ndarray.flatten(inputMatrix)
-        p1=self.full1.run(flattened)
-        p2=self.full2.run(p1)
-        outputMatrix=softmax(p2)
-        return outputMatrix
+    def forward (self, inputMatrix):
+
+        self.currentOutput=inputMatrix
+
+        self.performLayer(np.ndarray.flatten)
+        self.performLayer(self.full1.forward)
+        self.performLayer(self.full2.forward)
+        self.performLayer(softmax)
+
+        return self.currentOutput
     
 
 class cnn ():
     def __init__ (self):
-        pass
-    
-    def feed_input(self):
-        #input is a tensor of shape (number of inputs x input height x input width x input channels)
+        self.b1=convolutional_block(conv=convolutional_layer(3,1,1), 
+                        activationFunction=reLU, 
+                        pool=max_pooling_layer(2, 2))
+        self.b2=convolutional_block(conv=convolutional_layer(3,1,1), 
+                        activationFunction=reLU, 
+                        pool=max_pooling_layer(2, 2))
+        self.b3=convolutional_block(conv=convolutional_layer(3,1,1), 
+                        activationFunction=reLU, 
+                        pool=max_pooling_layer(2, 2))
+        self.c1=classifier(full1=fully_connected_layer(128,neuron,reLU),
+                        full2=fully_connected_layer(10,neuron,reLU))
+        
+        self.blocks=[self.b1, self.b2, self.b3, self.c1]
+        self.layerOutputs=[] 
 
-
-        #start the neural network
-        pass
+    def feed_input(self, inputMatrix=np.zeros((64, 400))):
+        
+        currentMatrix=inputMatrix
+        for block in self.blocks:
+            currentMatrix=block.forward(currentMatrix)
+            self.layerOutputs.extend(block.layerOutputs)
+        
+        return currentMatrix
     
+        
+
+    
+
     
 
