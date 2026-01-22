@@ -192,6 +192,15 @@ class cnn ():
         self.blocks=[self.b1, self.b2, self.b3, self.c1]
         self.layerOutputs=[] 
 
+        self.weightMappings=[self.b1.conv.cn.weights, self.b2.conv.cn.weights]
+
+        #is this best way to represent weights?
+        for neuronWeight in self.c1.full1.neuronRow:
+            self.weightMappings.append(neuronWeight.weights)
+        for neuronWeight in self.c1.full1.neuronRow:
+            self.weightMappings.append(neuronWeight.weights)
+        
+
     def feed_input(self, inputMatrix=np.zeros((64, 400))):
         
         currentMatrix=inputMatrix
@@ -200,6 +209,10 @@ class cnn ():
             self.layerOutputs.extend(block.layerOutputs)
         
         return currentMatrix
+    
+    #weights are in convolutional_block.conv.cn.weights for convolutional layers
+    #in fully connected, they are in: classifier.full1.neuronRow[x].weights
+    #and full2.neuronRow[x].weights
     
         
 
