@@ -1,6 +1,9 @@
+# ATC-ASR Spectrogram Classifier
 
+A from-scratch implementation of a Convolutional Neural Network (CNN) for classifying Air Traffic Control (ATC) audio. Bypasses high-level frameworks to implement the underlying linear algebra and calculus. Optimize with GPU kernels required.
 
-Intended Structure:
+## Architecture & Design
+
 Input:
 (N, 1, 64, 400)
 
@@ -32,7 +35,17 @@ Dense: 25600 → 128, ReLU
 Dense: 128 → 10
 Softmax
 
+## Optimization Roadmap
 
+### Phase 1: Mathematical Optimization
+- **im2col**: Lowering convolutions to dense matrix multiplications (GEMM) to improve cache locality.
+- **Quantization**: Reducing precision to INT8 for increased arithmetic throughput.
+
+### Phase 2: CUDA Implementation (A100 Target)
+- **Memory Management**: Using constant memory for kernels and shared memory for tiling.
+- **Precision**: Implementing `__half2` (FP16) to leverage Tensor Core acceleration.
+- **Concurrency**: Overlapping H2D/D2H transfers with compute using CUDA streams.
+- **Profiling**: Identifying compute vs. memory bottlenecks using `nsys` and `ncu`.
 
 
 https://huggingface.co/datasets/jacktol/ATC-ASR-Dataset
