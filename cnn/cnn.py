@@ -110,15 +110,15 @@ class max_pooling_layer(layer):
         self.stride=stride
     
     def forward(self, inputMatrix=None): #will be 3 dimensional tuple
-        if inputMatrix.shape[1] % 2 != 0:
-            raise ValueError("2x2 maxpool requires %2==0")
 
         self.mask = np.zeros(inputMatrix.shape)
 
         #TODO change hardcoded inputMatrix[1] and [2] to something stronger
         numChannels=inputMatrix.shape[0]
-        outputSizeX=inputMatrix.shape[1]//self.kernelSize
-        outputSizeY=inputMatrix.shape[2]//self.kernelSize
+        H=inputMatrix.shape[1]
+        W=inputMatrix.shape[2]
+        outputSizeX=(H - self.kernelSize) // self.stride + 1
+        outputSizeY=(W - self.kernelSize) // self.stride + 1
         outputMatrix=np.zeros((numChannels, outputSizeX, outputSizeY)) 
         
         for x in range (0,outputSizeX):
@@ -128,13 +128,17 @@ class max_pooling_layer(layer):
                 iY=y*self.stride
                 
                 for i in range(numChannels):
-                    outputMatrix[i][x][y] += np.max(inputMatrix[i][iX:iX+self.kernelSize,
-                                                        iY:iY+self.kernelSize])
+                    
+                    patch = inputMatrix[i, iX:iX+self.kernelSize, iY:iY+self.kernelSize]
+                    max_idx = np.unravel_index(np.argmax(patch), patch.shape)
+
+                    outputMatrix[i][x][y] = patch[max_idx]
+                    self.mask[i,iX + max_idx[0],iY + max_idx[1]] = 1
+
         
         self.inputMatrix=inputMatrix
         self.outputMatrix=outputMatrix
 
-        self.mask=(inputMatrix != 0)
 
         return outputMatrix
 
@@ -246,6 +250,7 @@ class cnn ():
             currentMatrix=block.forward(currentMatrix)
             self.layerOutputs.extend(block.layerOutputs)
         
+
         return currentMatrix
     
     #weights are in convolutional_block.conv.cn.weights for convolutional layers

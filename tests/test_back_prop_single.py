@@ -1,6 +1,7 @@
 import numpy as np
 from cnn.cnn import cnn
 from cnn.back_propagation import back_prop
+from cnn.cnn import softmax
 
 if __name__ == "__main__":
     myCnn=cnn()
@@ -9,8 +10,9 @@ if __name__ == "__main__":
     X = data["X"] 
 
     first_spec = X[0, 0] 
-    print(myCnn.feed_input(first_spec))
-    back_prop(first_spec, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0], myCnn)
+    output=myCnn.feed_input(first_spec)
+    print(output)
+    back_prop(output, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0], myCnn)
     print(myCnn.feed_input(first_spec))
 
 

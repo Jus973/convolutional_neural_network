@@ -7,19 +7,16 @@ def cross_entropy_loss(p, q):
     return -sum(p[x] * np.log(q[x]) for x in range(len(p)))
 
 
-def back_prop(inputV, trueV, cnn=cnn(), learningRate=0.001):
+def back_prop(outputV, trueV, cnn=cnn(), learningRate=0.001):
     #trueV is onehot
     #given one inputV and one outputV shift the cnn's weights. need to run for
     #all data
-
-    outputV=cnn.feed_input(inputV)
 
     #weights are in convolutional_block.conv.cn[x].weights for convolutional layers
     #in fully connected, they are in: classifier.full1.neuronRow[x].weights
     #and full2.neuronRow[x].weights
 
     upGradient=outputV-trueV
-    outputMatrix=cnn.layerOutputs[::-1]
     #dC/dW(L) = dZ(l)/dW(l) * da(L)/dZ(l) * dC/da(L)
     #we know dC/da(L) = error
     
@@ -29,8 +26,8 @@ def back_prop(inputV, trueV, cnn=cnn(), learningRate=0.001):
 
     def backDenseLayer(theLayer, upGradient):
         for n in range(len(theLayer.neuronRow)):
-            theLayer.neuronRow[n].dWeights = learningRate * upGradient[n] * theLayer.inputMatrix 
-            theLayer.neuronRow[n].dBias = learningRate * upGradient[n]
+            theLayer.neuronRow[n].dWeights = upGradient[n] * theLayer.inputMatrix 
+            theLayer.neuronRow[n].dBias = upGradient[n]
         
         newError=np.zeros(len(theLayer.inputMatrix))
         for n in range(len(upGradient)):
@@ -61,6 +58,7 @@ def back_prop(inputV, trueV, cnn=cnn(), learningRate=0.001):
         for c in range(len(theBlock.conv.cn)):
             
             filterGradient=np.zeros(theBlock.conv.cn[c].weights.shape)
+            flippedFilter = np.flip(theBlock.conv.cn[c].weights)
 
             for x in range (upGradient.shape[1]):
                 for y in range (upGradient.shape[2]):
@@ -72,11 +70,10 @@ def back_prop(inputV, trueV, cnn=cnn(), learningRate=0.001):
                     filterGradient[:, :p_h, :p_w]+=inputPatch*upGradient[c][x][y]
                     
                     errorValue = upGradient[c][x][y]
-                    flippedFilter = np.flip(theBlock.conv.cn[c].weights)
                     downstreamError[:, x:x+p_h, y:y+p_w] += flippedFilter[:, :p_h, :p_w] * errorValue
 
-
-            theBlock.conv.cn[c].dWeights=learningRate * filterGradient
+            
+            theBlock.conv.cn[c].dWeights= filterGradient
 
         return downstreamError
     
@@ -99,8 +96,8 @@ def back_prop(inputV, trueV, cnn=cnn(), learningRate=0.001):
     allWeights.extend(cnn.b1.conv.cn)
     
     for eachNeuron in allWeights:
-        eachNeuron.weights -= eachNeuron.dWeights
-        eachNeuron.bias -= eachNeuron.dBias
+        eachNeuron.weights -= eachNeuron.dWeights * learningRate
+        eachNeuron.bias -= eachNeuron.dBias * learningRate
     
 
 
