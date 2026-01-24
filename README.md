@@ -1,6 +1,6 @@
 # ATC-ASR Spectrogram Classifier
 
-A from-scratch implementation of a Convolutional Neural Network (CNN) for classifying Air Traffic Control (ATC) audio. Bypasses high-level frameworks to implement the underlying linear algebra and calculus. Optimize with GPU kernels required.
+A from-scratch implementation of a Convolutional Neural Network (CNN) for classifying Air Traffic Control (ATC) audio. Bypasses high-level frameworks to implement the underlying linear algebra and calculus. Optimize with GPU kernels.
 
 ## Architecture & Design
 

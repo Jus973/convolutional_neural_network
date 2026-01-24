@@ -87,13 +87,21 @@ class reLU (layer):
 class softmax (layer):
     #expects 1d 
     def forward (self, inputMatrix=None):
-        summation=sum(np.exp(inputMatrix))
-        outputMatrix=[np.exp(x)/summation for x in inputMatrix]
-
         self.inputMatrix=inputMatrix
-        self.outputMatrix=outputMatrix
 
-        return outputMatrix
+        shift_x = inputMatrix - np.max(inputMatrix)
+        exps = np.exp(shift_x)
+        self.outputMatrix = exps / np.sum(exps)
+        
+        return self.outputMatrix
+    
+
+class flatten (layer):
+
+    def forward (self, inputMatrix=None):
+        self.inputMatrix=inputMatrix
+        self.outputMatrix=np.ndarray.flatten(inputMatrix)
+        return self.outputMatrix
 
 class max_pooling_layer(layer):
     def __init__(self, kernelSize=2, stride=2):
@@ -104,7 +112,9 @@ class max_pooling_layer(layer):
     def forward(self, inputMatrix=None): #will be 3 dimensional tuple
         if inputMatrix.shape[1] % 2 != 0:
             raise ValueError("2x2 maxpool requires %2==0")
-    
+
+        self.mask = np.zeros(inputMatrix.shape)
+
         #TODO change hardcoded inputMatrix[1] and [2] to something stronger
         numChannels=inputMatrix.shape[0]
         outputSizeX=inputMatrix.shape[1]//self.kernelSize
@@ -119,10 +129,12 @@ class max_pooling_layer(layer):
                 
                 for i in range(numChannels):
                     outputMatrix[i][x][y] += np.max(inputMatrix[i][iX:iX+self.kernelSize,
-                                                        iY:iY+self.kernelSize])    
+                                                        iY:iY+self.kernelSize])
         
         self.inputMatrix=inputMatrix
         self.outputMatrix=outputMatrix
+
+        self.mask=(inputMatrix != 0)
 
         return outputMatrix
 
@@ -131,6 +143,7 @@ class fully_connected_layer(layer):
     def __init__(self, numNeurons, act_function, inputSize):
         super().__init__()
         self.neuronRow=[]
+        self.activationFunction=act_function
         for _ in range(numNeurons):
             self.neuronRow.append(neuron(weights=kaiming(inputSize), act_function=act_function))
 
@@ -141,8 +154,9 @@ class fully_connected_layer(layer):
             outputMatrix.append(self.neuronRow[i].output(inputMatrix))
         
         self.inputMatrix=inputMatrix
-        self.outputMatrix=outputMatrix
-        return outputMatrix
+        self.outputMatrix=np.array(outputMatrix)
+        return self.outputMatrix
+
 
 
 #clean way of combining layers to be blocks while still storing outputs
@@ -187,7 +201,7 @@ class classifier (block):
 
         self.currentOutput=inputMatrix
 
-        self.performLayer(np.ndarray.flatten)
+        self.performLayer(flatten().forward)
         self.performLayer(self.full1.forward)
         self.performLayer(self.full2.forward)
         self.performLayer(softmax().forward)

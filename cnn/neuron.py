@@ -5,6 +5,9 @@ class neuron ():
         self.weights=weights
         self.bias=bias
         self.act_function=act_function
+        
+        self.dWeights=0
+        self.dBias=0
     
     def output(self,inputs:np.array):
         #inputs not necessarily always an array. base implementation almost always overriden

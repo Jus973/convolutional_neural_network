@@ -8,5 +8,8 @@ if __name__ == "__main__":
     X = data["X"] 
 
     first_spec = X[0, 0] 
+    myCnn.feed_input(first_spec)
+
+    for layer in myCnn.layerOutputs:
+        print(layer.shape)
     
-    print(myCnn.feed_input(first_spec))
