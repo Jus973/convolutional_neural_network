@@ -39,6 +39,7 @@ Softmax
 
 ### Phase 1: Mathematical Optimization
 - **im2col**: Lowering convolutions to dense matrix multiplications (GEMM) to improve cache locality.
+- https://ieeexplore.ieee.org/document/9342343
 - **Quantization**: Reducing precision to INT8 for increased arithmetic throughput.
 
 ### Phase 2: CUDA Implementation (A100 Target)
