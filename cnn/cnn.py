@@ -45,12 +45,12 @@ class convolutional_layer(layer):
         paddedMatrix = np.pad(
             inputMatrix,
             ((0,0),
-             (self.padding, self.padding),
+            (self.padding, self.padding),
             (self.padding, self.padding)),
             mode="constant"
         )
 
-        outputSizeX=inputMatrix.shape[1]
+        outputSizeX=inputMatrix.shape[1] #TODO inaccurate b/c of stride
         outputSizeY=inputMatrix.shape[2]
         outputMatrix=np.zeros((self.numChannels, outputSizeX, outputSizeY)) 
         
@@ -69,6 +69,30 @@ class convolutional_layer(layer):
         return outputMatrix
     # All neurons in the same convolutional layer share the same weights
 
+    def backward(self, upGradient):
+        downstreamError = np.zeros(self.inputMatrix.shape) 
+        convKernelSize=self.kernelSize
+        for c in range(len(self.cn)):
+            
+            filterGradient=np.zeros(self.cn[c].weights.shape)
+            flippedFilter = np.flip(self.cn[c].weights)
+
+            for x in range (upGradient.shape[1]):
+                for y in range (upGradient.shape[2]):
+
+                    inputPatch = self.inputMatrix[:, x:x+convKernelSize, 
+                                                            y:y+convKernelSize]
+                    _, p_h, p_w = inputPatch.shape #fix boundary case
+
+                    filterGradient[:, :p_h, :p_w]+=inputPatch*upGradient[c][x][y]
+                    
+                    errorValue = upGradient[c][x][y]
+                    downstreamError[:, x:x+p_h, y:y+p_w] += flippedFilter[:, :p_h, :p_w] * errorValue
+
+            self.cn[c].dWeights = filterGradient
+        
+        return downstreamError
+
 
 class reLU (layer):
 
@@ -80,15 +104,13 @@ class reLU (layer):
         self.outputMatrix=vectorizedUnit(inputMatrix)
         return self.outputMatrix
     
-    def backward (self, outputMatrix):
-        dInput = outputMatrix * (self.inputMatrix > 0)
+    def backward (self, upGradient):
+        dInput = upGradient * (self.inputMatrix > 0)
         return dInput
 
 class softmax (layer):
     #expects 1d 
-    def forward (self, inputMatrix=None):
-        self.inputMatrix=inputMatrix
-
+    def forward (self, inputMatrix):
         shift_x = inputMatrix - np.max(inputMatrix)
         exps = np.exp(shift_x)
         self.outputMatrix = exps / np.sum(exps)
@@ -96,12 +118,20 @@ class softmax (layer):
         return self.outputMatrix
     
 
-class flatten (layer):
+    def backward (self, upGradient):
+        print("error")
+    
 
+class flatten (layer):
     def forward (self, inputMatrix=None):
         self.inputMatrix=inputMatrix
         self.outputMatrix=np.ndarray.flatten(inputMatrix)
+        #use self.inputMatrix.shape for calcs
         return self.outputMatrix
+    
+    def backward (self, upGradient):
+        return upGradient.reshape(self.inputMatrix.shape)
+
 
 class max_pooling_layer(layer):
     def __init__(self, kernelSize=2, stride=2):
@@ -142,6 +172,13 @@ class max_pooling_layer(layer):
 
         return outputMatrix
 
+    def backward(self, upGradient):
+        stretchedGradient=np.repeat(np.repeat(upGradient, self.kernelSize, axis=1), 
+                                   self.kernelSize, axis=2)
+        stretchedGradient=stretchedGradient*self.mask
+        return stretchedGradient
+
+
 class fully_connected_layer(layer):
 
     def __init__(self, numNeurons, act_function, inputSize):
@@ -160,100 +197,12 @@ class fully_connected_layer(layer):
         self.inputMatrix=inputMatrix
         self.outputMatrix=np.array(outputMatrix)
         return self.outputMatrix
-
-
-
-#clean way of combining layers to be blocks while still storing outputs
-class block ():
-    def __init__(self):
-        self.layerOutputs=[]
-        self.currentOutput=None
-
-    def performLayer(self, forwardFunction):
-        self.currentOutput=forwardFunction(self.currentOutput)
-        self.layerOutputs.append(self.currentOutput)
-
-class convolutional_block (block):
-    def __init__(self, conv=convolutional_layer(3,1,1,1,1), 
-                    activationFunction=reLU(), 
-                    pool=max_pooling_layer(2, 2)):
-        super().__init__()
-        self.conv=conv
-        self.activationFunction=activationFunction
-        self.pool=pool
-
-    #convolutional_layer.convNeuron.weights are my weights
-
-    def forward (self, inputMatrix):
-        self.currentOutput=inputMatrix
-        self.performLayer(self.conv.forward)
-        self.performLayer(self.activationFunction.forward)
-        self.performLayer(self.pool.forward)
-
-        return self.currentOutput
-
-class classifier (block):
-    def __init__(self, full1=fully_connected_layer(6,reLU(),10),
-                        full2=fully_connected_layer(3,reLU(),10)):
-        super().__init__()
-        self.full1=full1
-        self.full2=full2
-
-        #fully_connected_layer.neuronRow[x] are my weights for x neurons
     
-    def forward (self, inputMatrix):
-
-        self.currentOutput=inputMatrix
-
-        self.performLayer(flatten().forward)
-        self.performLayer(self.full1.forward)
-        self.performLayer(self.full2.forward)
-        self.performLayer(softmax().forward)
-
-        return self.currentOutput
-    
-
-class cnn ():
-    def __init__ (self):
-        self.b1=convolutional_block(conv=convolutional_layer(3,1,1,16,1), 
-                        activationFunction=reLU(), 
-                        pool=max_pooling_layer(2, 2))
-        self.b2=convolutional_block(conv=convolutional_layer(3,1,1,32,16), 
-                        activationFunction=reLU(), 
-                        pool=max_pooling_layer(2, 2))
-        self.b3=convolutional_block(conv=convolutional_layer(3,1,1,64,32), 
-                        activationFunction=reLU(), 
-                        pool=max_pooling_layer(2, 2))
-        self.c1=classifier(full1=fully_connected_layer(128,reLU(),25600),
-                        full2=fully_connected_layer(10,reLU(),128))
-        
-        self.blocks=[self.b1, self.b2, self.b3, self.c1]
-        self.layerOutputs=[] 
-
-
-        #defunct weight mappings. find way to access it when dealing with backprop
-        # self.weightMappings=[self.b1.conv.cn.weights, self.b2.conv.cn.weights]
-
-        # #is this best way to represent weights?
-        # for neuronWeight in self.c1.full1.neuronRow:
-        #     self.weightMappings.append(neuronWeight.weights)
-        # for neuronWeight in self.c1.full1.neuronRow:
-        #     self.weightMappings.append(neuronWeight.weights)
-
-    def feed_input(self, inputMatrix=None):
-        
-        #resize inputMatrix to 3d tuple. originally 1, 64, 400
-        inputMatrix=np.expand_dims(inputMatrix, axis=0)
-
-        currentMatrix=inputMatrix
-        for block in self.blocks:
-            currentMatrix=block.forward(currentMatrix)
-            self.layerOutputs.extend(block.layerOutputs)
-        
-
-        return currentMatrix
-    
-    #weights are in convolutional_block.conv.cn.weights for convolutional layers
-    #in fully connected, they are in: classifier.full1.neuronRow[x].weights
-    #and full2.neuronRow[x].weights
-
+    def backward(self, upGradient):
+        for n in range(len(self.neuronRow)):
+            self.neuronRow[n].dWeights = upGradient[n] * self.inputMatrix 
+            self.neuronRow[n].dBias = upGradient[n]
+        newError=np.zeros(len(self.inputMatrix))
+        for n in range(len(upGradient)):
+            newError += upGradient[n]*self.neuronRow[n].weights
+        return newError

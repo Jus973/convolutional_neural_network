@@ -1,5 +1,4 @@
 import numpy as np
-from cnn.cnn import cnn
 
 def cross_entropy_loss(p, q):
     #two probability distributions p and q
@@ -7,7 +6,7 @@ def cross_entropy_loss(p, q):
     return -sum(p[x] * np.log(q[x]) for x in range(len(p)))
 
 
-def back_prop(outputV, trueV, cnn=cnn(), learningRate=0.001):
+def back_prop(outputV, trueV, cnn, learningRate=0.001):
     #trueV is onehot
     #given one inputV and one outputV shift the cnn's weights. need to run for
     #all data
@@ -97,9 +96,10 @@ def back_prop(outputV, trueV, cnn=cnn(), learningRate=0.001):
     
     for eachNeuron in allWeights:
         eachNeuron.weights -= eachNeuron.dWeights * learningRate
-        eachNeuron.bias -= eachNeuron.dBias * learningRate
-    
+        eachNeuron.bias -= eachNeuron.dBias * learningRate    
 
 
-    
+
+
+
 

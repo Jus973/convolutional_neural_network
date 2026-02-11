@@ -32,7 +32,7 @@ Classifier
 Flatten →
 (N, 64 × 8 × 50 = 25600)
 Dense: 25600 → 128, ReLU
-Dense: 128 → 10
+Dense: 128 → 8
 Softmax
 
 ## Optimization Roadmap
