@@ -1,5 +1,4 @@
 import numpy as np
-from cnn.cnn import cnn
 from cnn.cnn import convolutional_layer
 from cnn.utils import kaiming
 from cnn.neuron import neuron
@@ -52,10 +51,10 @@ class im2col(convolutional_layer): #replace the convolutional layer implementati
                 full_col_array[counter]=newCol
                 counter+=1
         
-        full_weight_array = np.zeros((self.numChannels,self.kernelSize*self.kernelSize))
-
+        full_weight_array = np.zeros((self.numChannels,self.inputChannels*self.kernelSize*self.kernelSize))
+        
         for i in range(len(self.cn)):
-            full_weight_array[i]=self.cn[i].weights
+            full_weight_array[i]=np.ndarray.flatten(self.cn[i].weights)
         
         outputMatrix=full_col_array@full_weight_array.T
         outputMatrix=outputMatrix.T.reshape(self.numChannels, outputSizeX, outputSizeY)

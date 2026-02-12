@@ -19,14 +19,11 @@ class tanh (layer):
         return outputMatrix * (1 - np.tanh(self.inputMatrix)**2)
 
 
-
-
-
 '''
 LeNET structure
 
 32x32 input
-normalization #need to implement in here
+normalization need to implement in here
 
 c1 layer:
 6 layers. 5x5 kernel size
